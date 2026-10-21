@@ -43,10 +43,10 @@ fun PatternTrailCanvas(modifier: Modifier,     vm: HexoPadViewModel = viewModel(
                 val pos = hexoPosition(point, center, patternPadGeometry.radius)
 
                 drawLine(
-                    color = Color.Blue.copy(1f/(a)),
+                    color = Color.White.copy(1f/(a+3f)),
                     start = pos,
                     end = nextPos,
-                    strokeWidth = patternPadGeometry.iconSize/5,
+                    strokeWidth = patternPadGeometry.iconSize,
                     cap = StrokeCap.Round
                 )
             }

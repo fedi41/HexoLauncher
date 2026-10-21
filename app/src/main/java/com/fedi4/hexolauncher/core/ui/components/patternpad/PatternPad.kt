@@ -11,36 +11,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.fedi4.hexolauncher.core.ui.HexoPadViewModel
-import com.fedi4.hexolauncher.core.ui.layout.HexoLayout
-import com.fedi4.hexolauncher.core.ui.layout.HexoLayoutController
 import kotlin.math.min
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fedi4.hexolauncher.core.ui.PatternPadGeometry
-import com.fedi4.hexolauncher.core.ui.PatternPadUiState
+import com.fedi4.hexolauncher.core.ui.layout.PatternPadLayout
 
 
 @Composable
-fun PatternPad(
+fun PatternPadNormal(
     modifier: Modifier = Modifier,
     vm: HexoPadViewModel = viewModel(factory = HexoPadViewModel.Factory)
 ) {
     val uiState = vm.uiState
     val geometry = uiState.geometry.value
-
-    val controller = remember { HexoLayoutController() }
 
     // MORPH STUFF
 //    val shapeA = remember {
@@ -69,7 +62,7 @@ fun PatternPad(
 
 
 
-    HexoLayout(
+    PatternPadLayout(
 
         // MODIFIER
         modifier = modifier
@@ -82,22 +75,33 @@ fun PatternPad(
                         if (event.type == PointerEventType.Press) {
                             Log.d("Pointer", event.type.toString())
                             vm.onDragStart()
-                            controller.send(event.changes.first().position)
                         }
                         if (event.type == PointerEventType.Release) {
                             Log.d("Pointer", event.type.toString())
                             vm.onDragEnd()
                         }
+
                     }
                 }
-            }
-                .pointerInput(Unit) {
+            }.pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = { offset -> //vm.onDragStart() }, onDragEnd = {
                             vm.onDragEnd() },
                         onDragCancel = {
                             vm.onDragCancel() },
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, dragAmount -> {
+                                    if ((change.position - geometry.center).getDistance() > geometry.outerRadius) {
+                                        vm.onDragCancel()
+                                        return@detectDragGestures
+                                    }
+
+                                    childCenters.minByOrNull { (_, center) ->
+                                        (pos - center).getDistance()
+                                    }?.let { (index, _) ->
+                                        onNearestChild(index)
+                                    }
+
+                                    }
                         }
                     )
                 }.border(
@@ -106,14 +110,8 @@ fun PatternPad(
                 CircleShape
                 ),
 
-        // PARAMETERS
-        itemSize = geometry.itemSizeDp,
-        ringRadius = geometry.radiusDp,
-        onNearestChild = { id ->
-            vm.onTouchedPoint(id) },
-        onExitCircle = {
-            vm.onDragCancel() },
-        controller = controller
+            // PARAMETERS
+            geometry = geometry
     ) {
         // PATTERN PAD POINTS
         repeat(7) { i ->
@@ -127,7 +125,7 @@ fun PatternPad(
 }
 
 @Composable
-fun PatternPadWrapper(modifier: Modifier,     vm: HexoPadViewModel = viewModel(factory = HexoPadViewModel.Factory)) {
+fun PatternPadWrapper(modifier: Modifier,  vm: HexoPadViewModel = viewModel(factory = HexoPadViewModel.Factory)) {
 
     LaunchedEffect(vm) {
         vm.loadPatternRoot()
@@ -149,7 +147,7 @@ fun PatternPadWrapper(modifier: Modifier,     vm: HexoPadViewModel = viewModel(f
                     vm = vm,
                 )
 
-                PatternPad(
+                PatternPadNormal(
                     modifier = Modifier.size(sizeDp),
                     vm = vm,
                 )
